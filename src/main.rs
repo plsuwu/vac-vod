@@ -71,7 +71,7 @@ async fn fetch_subs(channel_id: &str) -> Vec<(String, String)> {
                     "--sub-langs",
                     "en",
                     "--sub-format",
-                    "srt",
+                    "vtt",
                     "-o",
                     "subtitle:%(id)s.%(ext)s",
                     &format!("https://youtube.com/watch?v={}", video.video_id),

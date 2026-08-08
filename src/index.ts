@@ -10,7 +10,7 @@ for (const id of ["UCaZkRdEEpePJ4EEZznuqh8g", "UCBustguC_fsnqDQZxOBgGEg"]) {
 	});
 
 	const manifestFilepath = `subs/${playlistHandler.channelId}`;
-	$`mkdir -p ${manifestFilepath}`;
+	$`mkdir -p ${manifestFilepath}/.raw`;
 
 	await playlistHandler.getPlaylistItems();
 	const videos = playlistHandler.playlistItems;
