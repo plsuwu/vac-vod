@@ -1,6 +1,9 @@
 {
   "name": "yt-api",
   "module": "index.ts",
+  "scripts": {
+      "all": "bun --bun ./index.ts && cargo run --release",
+  },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/node": "^26.2.0"
@@ -9,5 +12,5 @@
     "typescript": "^5"
   },
   "private": true,
-  "type": "module"
+  "type": "module",
 }

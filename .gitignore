@@ -35,3 +35,10 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 
 .direnv
+
+
+# Added by cargo
+
+/target
+cookies.env
+subs/

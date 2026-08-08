@@ -1,150 +1,119 @@
 import type {
-	PlaylistIdPart,
 	PlaylistItemListResponse,
+	PlaylistQueryParams,
+	Video,
+	ChannelId,
+	PlaylistId,
 } from "./types";
-const { API_KEY } = Bun.env;
 
-const API_URL = "https://www.googleapis.com/youtube/v3";
-const DEFAULT_PARTS: Array<PlaylistIdPart> = [
-	"contentDetails",
-	"id",
-	"snippet",
-	"status",
-];
+export const BASE_API_URL = "https://www.googleapis.com/youtube/v3";
 
-function deriveChannelUploadsPlaylist(channelId: string) {
-	if (channelId.startsWith("UC")) {
-		return `UU${channelId.slice(2)}`;
-	} else if (channelId.startsWith("UU")) {
-		return channelId;
-	}
+export class Playlist {
+	private _apiKey: string;
+	playlistItems: Array<Video> = new Array();
+	fetchedItems = 0;
+	totalItems = 0;
+	apiUrl: URL;
+	channelId: ChannelId;
+	uploadsPlaylistId: string;
+	params: PlaylistQueryParams;
 
-	throw new Error("invalid channel id");
-}
-
-function buildPlaylistListQueryParams({
-	playlistId,
-	maxResults,
-	part,
-	nextPageToken,
-}: {
-	playlistId: string;
-	maxResults?: number;
-	part?: Array<PlaylistIdPart>;
-	key?: string;
-	nextPageToken?: string;
-}) {
-	const params = {
+	constructor({
+		apiKey,
+		channelId,
+		apiUrl,
 		playlistId,
-		maxResults: String(maxResults ?? 50),
-		part: part ? part.join(",") : DEFAULT_PARTS.join(","),
-		key: API_KEY!,
-	};
-
-	if (nextPageToken != null) {
-		(params as any).pageToken = nextPageToken;
-	}
-
-	return params;
-}
-
-async function handleFetch({
-	channelId,
-	part,
-	maxResults,
-	nextPageToken,
-	apiUrl,
-}: {
-	channelId: string;
-	part?: Array<PlaylistIdPart>;
-	maxResults?: number;
-	nextPageToken?: string;
-	apiUrl?: string;
-}) {
-	const params = buildPlaylistListQueryParams({
-		playlistId: deriveChannelUploadsPlaylist(channelId),
-		part,
-		maxResults,
-		nextPageToken,
-	});
-	const endpoint = new URL(`${apiUrl ?? API_URL}/playlistItems`);
-	for (const [k, v] of Object.entries(params)) {
-		endpoint.searchParams.set(k, v);
-	}
-
-	try {
-		const res = await fetch(endpoint);
-		const body = await res.json();
-
-		if (res.ok) {
-			const parsed = parsePlaylistItemListResponse(
-				body as PlaylistItemListResponse
-			);
-
-			return { success: true, data: parsed };
-		} else {
-			console.error("response non-200:", res.status, res.statusText);
-			console.error(await res.json());
-
-			return { success: false, data: null };
+	}: {
+		apiKey: string;
+		channelId: string;
+		apiUrl?: string;
+		playlistId?: string;
+	}) {
+		if (!Playlist.isChannelId(channelId)) {
+			throw new Error(`invalid channelId: '${channelId}'`);
 		}
-	} catch (err) {
-		console.error("failed:", err);
-		return { success: false, data: null };
-	}
-}
 
-function parsePlaylistItemListResponse(
-	data: PlaylistItemListResponse
-) {
-	const { nextPageToken, items, pageInfo } = data;
+		this.apiUrl = new URL(apiUrl ?? `${BASE_API_URL}/playlistItems`);
+		this._apiKey = apiKey;
+		this.channelId = channelId;
+		this.uploadsPlaylistId =
+			playlistId ?? Playlist.derivePlaylistId(this.channelId);
 
-	const videos = items.map((item) => {
-		const { title, publishedAt, thumbnails } = item.snippet!;
-		const { videoId } = item.snippet!.resourceId;
-
-		return {
-			title,
-			videoId,
-			publishedAt,
-			thumbnails: thumbnails.standard ?? thumbnails.default,
+		this.params = {
+			maxResults: "50",
+			part: "contentDetails,snippet",
+			playlistId: this.uploadsPlaylistId,
+			key: this._apiKey,
 		};
-	});
+	}
 
-	return { videos, nextPageToken, pageInfo };
-}
+	static isChannelId(channel: string): channel is ChannelId {
+		return channel.startsWith("UC");
+	}
 
-export async function fetchPlaylists({
-	channelId,
-	apiUrl,
-}: {
-	channelId: string;
-	apiUrl?: string;
-}) {
-	const playlistItems = new Array();
+	static derivePlaylistId(channel: ChannelId): PlaylistId {
+		return `UU${channel.slice(2)}`;
+	}
 
-	let expectedLength = 0;
-	let nextPageToken: string | undefined = undefined;
+	setPage(pageToken: string | undefined = undefined) {
+		this.params.pageToken = pageToken;
+	}
 
-	do {
-		const res = await handleFetch({
-			channelId,
-			apiUrl,
-			nextPageToken,
-		});
-		if (!res.success || !res.data) {
-			break;
-		}
+	async getPlaylistItems() {
+		do {
+			const res = await this.getNextPage();
+			if (!res.data) break;
 
-		expectedLength = res.data.pageInfo.totalResults;
-		nextPageToken = res.data.nextPageToken;
+			this.totalItems = res.data.pageInfo.totalResults;
+			this.fetchedItems += res.data.videos.length;
+			this.playlistItems.push(...res.data.videos);
 
-		playlistItems.push(...res.data.videos);
+			this.setPage(res.data.nextPageToken);
+			console.log(
+				`progress: ${this.playlistItems.length}/${this.totalItems} items`
+			);
+		} while (this.fetchedItems < this.totalItems);
+	}
 
-		console.log(
-			`${playlistItems.length} of ${expectedLength} total items...`
+	async getNextPage() {
+		const nextUrl = this.apiUrl;
+		Object.entries(this.params).forEach(([k, v]) =>
+			nextUrl.searchParams.set(k, v)
 		);
-	} while (playlistItems.length < expectedLength);
 
-	return playlistItems;
+		try {
+			const res = await fetch(nextUrl);
+			const body = await res.json();
+			if (res.ok) {
+				const parsed = this.parseResponse(body as PlaylistItemListResponse);
+
+				return { data: parsed };
+			} else {
+				console.error("fetch failure:", res.status, res.statusText);
+				console.error(await res.json());
+				return { data: null };
+			}
+		} catch (e) {
+			console.error("failed during page fetch:", e);
+			return { data: null };
+		}
+	}
+
+	parseResponse(data: PlaylistItemListResponse) {
+		const { nextPageToken, items, pageInfo } = data;
+
+		const videos = items.map((item) => {
+			const { title, publishedAt, thumbnails } = item.snippet!;
+			const { videoId } = item.snippet!.resourceId;
+
+			return {
+				title,
+				videoId,
+				publishedAt,
+				thumbnails: thumbnails.standard ?? thumbnails.default,
+			};
+		});
+
+		return { videos, nextPageToken, pageInfo };
+	}
 }

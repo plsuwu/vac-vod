@@ -1,22 +1,37 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    utils.url = "github:numtide/flake-utils";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    crane.url = "github:ipetkov/crane";
+    flake-utils.url = "github:numtide/flake-utils";
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
+
   outputs =
     {
       self,
       nixpkgs,
-      utils,
+      crane,
+      flake-utils,
+      rust-overlay,
+      ...
     }:
-    utils.lib.eachDefaultSystem (
+    flake-utils.lib.eachDefaultSystem (
       system:
       let
-        pkgs = nixpkgs.legacyPackages.${system};
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [ (import rust-overlay) ];
+        };
+
+        craneLib = crane.mkLib pkgs;
       in
       {
-        devShell = pkgs.mkShell {
-          buildInputs = with pkgs; [
+        devShells.default = craneLib.devShell {
+          packages = with pkgs; [
+            pkg-config
             nodejs
             bun
 
@@ -26,3 +41,26 @@
       }
     );
 }
+
+# {
+#   inputs = {
+#     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+#     utils.url = "github:numtide/flake-utils";
+#   };
+#   outputs =
+#     {
+#       self,
+#       nixpkgs,
+#       utils,
+#     }:
+#     utils.lib.eachDefaultSystem (
+#       system:
+#       let
+#         pkgs = nixpkgs.legacyPackages.${system};
+#       in
+#       {
+#         devShell = pkgs.mkShell {
+#         };
+#       }
+#     );
+# }

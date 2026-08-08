@@ -5,6 +5,18 @@ export const PLAYLIST_ID_PARTS = [
 	"status",
 ] as const;
 export type PlaylistIdPart = (typeof PLAYLIST_ID_PARTS)[number];
+export type Video = {
+	title: string;
+	videoId: string;
+	publishedAt: Date;
+	thumbnails:
+		| {
+				url: string;
+				width: number;
+				height: number;
+		  }
+		| undefined;
+};
 
 export type PlaylistItemListResponse = {
 	kind: "youtube#playlistItemListResponse";
@@ -18,42 +30,38 @@ export type PlaylistItemListResponse = {
 	items: Array<PlaylistItemResource>;
 };
 
-export type PlaylistItemSnippet = {
-	publishedAt: Date;
-	channelId: string;
-	title: string;
-	description: string;
-	thumbnails: {
-		[key: string]: {
-			url: string;
-			width: number;
-			height: number;
-		};
-	};
-	channelTitle: string;
-	videoOwnerChannelTitle: string;
-	videoOwnerChannelId: string;
-	playlistId: string;
-	position: number;
-	resourceId: {
-		kind: string;
-		videoId: string;
-	};
-} | undefined;
+export type PlaylistItemSnippet =
+	| {
+			publishedAt: Date;
+			channelId: string;
+			title: string;
+			description: string;
+			thumbnails: {
+				[key: string]: {
+					url: string;
+					width: number;
+					height: number;
+				};
+			};
+			channelTitle: string;
+			videoOwnerChannelTitle: string;
+			videoOwnerChannelId: string;
+			playlistId: string;
+			position: number;
+			resourceId: {
+				kind: string;
+				videoId: string;
+			};
+	  }
+	| undefined;
 
-// export type PlaylistItemSnippet =
-// 	| {
-// 			channelTitle: string;
-// 			videoOwnerChannelTitle: string;
-// 			videoOwnerChannelId: string;
-// 			playlistId: string;
-// 			position: number; // uint
-// 			resourceId: {
-// 				kind: string;
-// 				videoId: string;
-// 			};
-// 	  }
-// 	| undefined;
+export type PlaylistQueryParams = {
+	key: string;
+	playlistId: string;
+	maxResults: string;
+	part: string;
+	pageToken?: string;
+};
 
 export type PlaylistItemContentDetails =
 	| {
