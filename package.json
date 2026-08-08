@@ -2,7 +2,7 @@
   "name": "yt-api",
   "module": "index.ts",
   "scripts": {
-      "all": "bun --bun ./index.ts && cargo run --release",
+      "fetch": "bun --bun ./src/index.ts && cargo run --release",
   },
   "devDependencies": {
     "@types/bun": "latest",

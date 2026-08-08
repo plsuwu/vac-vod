@@ -3,16 +3,18 @@ import { Playlist } from "./getUploads.ts";
 
 const { API_KEY } = Bun.env;
 
-const playlistHandler = new Playlist({
-	apiKey: API_KEY!,
-	channelId: "UCaZkRdEEpePJ4EEZznuqh8g",
-});
+for (const id of ["UCaZkRdEEpePJ4EEZznuqh8g", "UCBustguC_fsnqDQZxOBgGEg"]) {
+	const playlistHandler = new Playlist({
+		apiKey: API_KEY!,
+		channelId: id,
+	});
 
-const manifestFilepath = `subs/${playlistHandler.channelId}`;
-$`mkdir -p ${manifestFilepath}`;
+	const manifestFilepath = `subs/${playlistHandler.channelId}`;
+	$`mkdir -p ${manifestFilepath}`;
 
-await playlistHandler.getPlaylistItems();
-const videos = playlistHandler.playlistItems;
-const manifestData = JSON.stringify(videos);
+	await playlistHandler.getPlaylistItems();
+	const videos = playlistHandler.playlistItems;
+	const manifestData = JSON.stringify(videos);
 
-await Bun.write(`${manifestFilepath}/manifest.json`, manifestData);
+	await Bun.write(`${manifestFilepath}/manifest.json`, manifestData);
+}
