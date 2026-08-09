@@ -1,117 +1,79 @@
-import html
-import re
-import unicodedata
+import glob
+import json
+import os
+import pathlib
 
-TEST_FILES = ["-3oTZS-brE8.en.vtt", "LWhmb1cbJ6Y.en.vtt", "xZCFvCmz7CA.en.vtt"]
-TS = re.compile(r"<(\d{2}):(\d{2}):(\d{2})\.(\d{3})>")
-CUE = re.compile(r"^(\d{2}):(\d{2}):(\d{2})\.(\d{3}) --> ")
-TAGS = re.compile(r"</?c[^>]*>")
-BRACKETED = re.compile(r"\[(music|laughter|__)\]", re.I)
+import jsonlines
 
-
-# def split_events(words: list[str]) -> (list[str], list[str]):
-#     speech, events = [], []
-#     for t, w in words:
-#         if BRACKETED.fullmatch(w):
-#             events.append((t, w.strip("[]").lower()))
-#         else:
-#             speech.append((t, w))
-#     return speech, events
+from .chunk import Chunked, chunk_parts
+from .clean import clean_subtitles
 
 
-def parse_cue_body(line: str, cue_start: float) -> list[tuple[float, str]]:
-    line = TAGS.sub("", line)
-    parts = [norm(p) for p in TS.split(line)]
-    words = []
+def ensure_output_dir(outdir: str, parent_path: str):
 
-    if cue_pt := parts[0].strip():
-        if len(cue_pt.split(" ")) == 1:
-            words.append((cue_start, cue_pt))
-
-    for i in range(1, len(parts), 5):
-        h, m, s, ms = map(int, parts[i : i + 4])
-        t = h * 3600 + m * 60 + s + ms / 1000
-        text = parts[i + 4].strip()
-        words.append((t, text))
-
-        # if len(text) == 1:
-        #     words.append((t, text))
-        # else:
-        #     for word in text:
-        #         words.append((t, word))
-
-    return force_monotonic(words)
+    pass
 
 
-def get_cue_start(line: str) -> float | None:
-    if cue := CUE.findall(line):
-        cue = cue[0]
-        h, m, s, ms = map(int, cue[0:4])
-        t = h * 3600 + m * 60 + s + ms / 1000
+def get_subs_dir(
+    channel_id: str, dir: str, raw_subdir: str = "raw"
+) -> pathlib.Path | None:
+    canonical_dir = (
+        pathlib.Path(dir)
+        .resolve()
+        .joinpath(channel_id)
+        .joinpath(raw_subdir)
+    )
+    if not os.path.exists(canonical_dir):
+        print(
+            f"cannot find raw subs for {channel_id} ({canonical_dir} not found)"
+        )
+        return None
 
-        return t
+    return canonical_dir
+
+
+def get_sub_files(
+    channel_id: str, dir="subs/", ext="vtt"
+) -> list[str]:
+    if canonical_dir := get_subs_dir(channel_id, dir):
+        sub_files = glob.glob(f"{canonical_dir}/*.{ext}")
+        video_ids = map(
+            lambda n: n.split("/")[-1].split(".")[0], sub_files
+        )
+
+        return list(zip(video_ids, sub_files))
     return None
 
 
-def clean_whitespace(lines: list[str]) -> list[str]:
-    filtered = list(filter(lambda line: not line.isspace() and line != "", lines))
+def write_jsonl(
+    chunked_subs: list[Chunked],
+    video_id: str,
+    channel_id: str,
+    dir="subs/",
+):
+    outdir = (
+        pathlib.Path(dir)
+        .resolve()
+        .joinpath(channel_id)
+        .joinpath("jsonl")
+    )
 
-    return [line.strip() for line in filtered]
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
 
+    outfile = f"{outdir}/{video_id}.jsonl"
+    with jsonlines.open(outfile, mode="w") as jf:
+        jf.write_all(chunked_subs)
 
-def norm(w: str) -> str:
-    w = html.unescape(w)
-    w = unicodedata.normalize("NFKC", w)
-
-    return w.strip()
-
-
-def collapse_runs(words: list[tuple[float, str]], max_reps=2):
-    out, run = [], 0
-    for t, w in words:
-        key = w.lower().strip(".,!?")
-        # print(w, "->", key)
-        if out and key == out[-1][1].lower().strip(".,!?"):
-            run += 1
-            if run >= max_reps:
-                continue
-        else:
-            run = 0
-        out.append((t, w))
-
-    return out
-
-
-def force_monotonic(words: list[tuple[float, str]]):
-    out, last = [], 0.0
-    for t, w in words:
-        if t < last:
-            t = last
-
-        out.append((t, w))
-        last = t
-    return out
+    print(f"ok: {video_id}")
 
 
 def main() -> None:
-    parsed = []
-    for file in TEST_FILES:
-        filepath = f"/home/please/src/youtube-caption-retriever/subs/test/{file}"
-        raw_content = open(filepath).readlines()[4:]
-        content = clean_whitespace(raw_content)
+    channel_ids = ["test"]
+    for channel_id in channel_ids:
+        files = get_sub_files(channel_id)
+        for video_id, file in files:
+            clean = clean_subtitles(file)
+            chunks = chunk_parts(channel_id, video_id, clean)
 
-        parsed_cues = []
-        next_start = 0.0
-
-        for line in content:
-            if cue_start := get_cue_start(line):
-                next_start = cue_start
-
-            else:
-                cue_body = parse_cue_body(line, next_start)
-                if len(cue_body) > 1:
-                    cue_body = collapse_runs(cue_body)
-                    parsed_cues.append(cue_body)
-
-        parsed.append(parsed_cues)
-    print(parsed[0])
+            write_jsonl(chunks, video_id, channel_id)

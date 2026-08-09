@@ -6,7 +6,10 @@ authors = [
     { name = "plsuwu", email = "124419933+plsuwu@users.noreply.github.com" }
 ]
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "jsonlines>=4.0.0",
+    "transformers>=5.14.1",
+]
 
 [project.scripts]
 embedding = "embedding:main"
@@ -14,3 +17,6 @@ embedding = "embedding:main"
 [build-system]
 requires = ["uv_build>=0.12.1,<0.13.0"]
 build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 70
