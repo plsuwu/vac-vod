@@ -42,4 +42,7 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 /target
 cookies.env
 subs/
+subs.*/
 **/__pycache__/
+.venv/
+
