@@ -22,7 +22,7 @@ def windows(seg, size, stride):
 
 
 def chunk_parts(
-    channel_id, video_id, words, size=200, stride=100, max_gap=30.0
+    channel_id, video_id, words, size=200, stride=100, max_gap=60.0
 ) -> list[Chunked]:
     segments, seg = [], [words[0]]
     for prev, cur in zip(words, words[1:]):

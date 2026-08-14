@@ -34,7 +34,10 @@ pub fn tokenize(text: &str) -> Vec<String> {
             }
             let word: String = word
                 .trim_matches(|c| c == '\'' || c == '\u{2019}')
+                .replace("Tiny", "Tini")
+                .replace("Wolfie", "Walfie")
                 .to_lowercase()
+                .replace("carabel", "kerobel")
                 .replace('\u{2019}', "'");
 
             if !word.is_empty() {

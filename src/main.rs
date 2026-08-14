@@ -17,13 +17,14 @@ async fn main() {
     let channel_ids = &args.channel_ids;
     let base_outdir = &args.output_dir;
     let query = args.search.clone().unwrap();
+    let k = args.k;
 
     _ = match get_args().action {
         ActionArg::Manifest => run_manifest_action(channel_ids, base_outdir).await,
         ActionArg::Fetch => run_fetch_action(channel_ids, base_outdir).await,
         ActionArg::Ingest => todo!(),
         ActionArg::All => todo!(),
-        ActionArg::Eval => run_eval_action(&query),
+        ActionArg::Eval => run_eval_action(&query, k),
     };
 }
 
@@ -43,9 +44,9 @@ async fn run_fetch_action(channel_ids: &[String], base_outdir: &str) -> Result<(
     Ok(())
 }
 
-fn run_eval_action(query: &str) -> Result<()> {
+fn run_eval_action(query: &str, k: usize) -> Result<()> {
     tracing::info!(query);
-    crate::rs::eval::search(query, 10);
+    crate::rs::eval::search(query, k);
 
     Ok(())
 }

@@ -54,9 +54,14 @@ pub fn search(q: &str, k: usize) {
     let t1 = std::time::Instant::now();
     let results = index.search(q, k);
 
-    tracing::info!("query in {:?}\n", t1.elapsed());
+    tracing::info!(
+        "query complete in {:?} ({} / k={})",
+        t1.elapsed(),
+        results.len(),
+        k
+    );
 
-    for (i, r) in results.iter().take(3).enumerate() {
+    for (i, r) in results.iter().take(5).enumerate() {
         let c = index.chunk(r.chunk_id);
         tracing::info!(
             "\n#{:2} [{:6.2}] \n[https://youtube.com/watch?v={}&t={}] -> [{} - {}]",
