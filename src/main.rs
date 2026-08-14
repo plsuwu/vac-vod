@@ -12,15 +12,18 @@ async fn main() {
     //     "UCaZkRdEEpePJ4EEZznuqh8g".to_string(),
     //     "UCBustguC_fsnqDQZxOBgGEg".to_string(),
     // ];
+
     let args = get_args();
     let channel_ids = &args.channel_ids;
     let base_outdir = &args.output_dir;
+    let query = args.search.clone().unwrap();
 
     _ = match get_args().action {
         ActionArg::Manifest => run_manifest_action(channel_ids, base_outdir).await,
         ActionArg::Fetch => run_fetch_action(channel_ids, base_outdir).await,
         ActionArg::Ingest => todo!(),
         ActionArg::All => todo!(),
+        ActionArg::Eval => run_eval_action(&query),
     };
 }
 
@@ -31,13 +34,19 @@ async fn run_fetch_action(channel_ids: &[String], base_outdir: &str) -> Result<(
         failures.extend(failed);
     }
 
-    // println!("completed {}; failed {:?}", channel_ids.len(), failures);
     tracing::info!(
         total_items = channel_ids.len(),
         failed_count = failures.len(),
         failures = ?failures,
         "complete"
     );
+    Ok(())
+}
+
+fn run_eval_action(query: &str) -> Result<()> {
+    tracing::info!(query);
+    crate::rs::eval::search(query, 10);
+
     Ok(())
 }
 

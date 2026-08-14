@@ -45,4 +45,9 @@ subs/
 subs.*/
 **/__pycache__/
 .venv/
+src/embedding/constant.py
+src/embedding/eval.py
+src/embedding/tokenize.py
+
+recall-eval.json
 

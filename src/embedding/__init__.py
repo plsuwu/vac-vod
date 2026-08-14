@@ -1,5 +1,4 @@
 import glob
-import json
 import os
 import pathlib
 
@@ -69,7 +68,10 @@ def write_jsonl(
 
 
 def main() -> None:
-    channel_ids = ["test"]
+    channel_ids = [
+        "UCaZkRdEEpePJ4EEZznuqh8g",
+        "UCBustguC_fsnqDQZxOBgGEg",
+    ]
     for channel_id in channel_ids:
         files = get_sub_files(channel_id)
         for video_id, file in files:
@@ -77,3 +79,5 @@ def main() -> None:
             chunks = chunk_parts(channel_id, video_id, clean)
 
             write_jsonl(chunks, video_id, channel_id)
+
+    # eval

@@ -5,31 +5,43 @@ use std::sync::OnceLock;
 use clap::{Parser, ValueEnum};
 use dirs::document_dir;
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Default)]
 pub enum ActionArg {
-    #[value(alias("init"))]
     Manifest,
     Fetch,
     Ingest,
     All,
+
+    #[default]
+    Eval,
 }
 
 static CLI_ARGS: LazyLock<OnceLock<Arc<CLIArgs>>> = LazyLock::new(OnceLock::new);
 
 pub fn get_args() -> Arc<CLIArgs> {
     let args = CLI_ARGS.get_or_init(|| Arc::new(CLIArgs::parse()));
+    if args.action == ActionArg::Eval && args.search.is_none() {
+        panic!("'eval' option requires search (--search/-s).");
+    }
+
     Arc::clone(args)
 }
 
-#[derive(Parser)]
+#[derive(Parser, Default)]
 #[command(version, about, long_about = None)]
 pub struct CLIArgs {
     /// List of YouTube Channel IDs to fetch captions for.
     pub channel_ids: Vec<String>,
 
     /// Job to run for this Channel
-    #[arg(value_enum, short, long, default_value_t = ActionArg::All)]
+    #[arg(value_enum, short, long, default_value_t = ActionArg::Eval)]
     pub action: ActionArg,
+
+    #[arg(short, long)]
+    pub search: Option<String>,
+
+    #[arg(short, long, default_value_t = 10)]
+    pub k: usize,
 
     /// Base directory for outputs.
     #[arg(short, long, default_value_t = default_outdir())]

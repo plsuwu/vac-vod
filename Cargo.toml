@@ -1,5 +1,5 @@
 [package]
-name = "youtube-caption-retriever"
+name = "vac-vod"
 version = "0.1.0"
 edition = "2024"
 
