@@ -1,6 +1,7 @@
 mod ingest;
 mod misc;
 mod tokenizer;
+mod safetensors;
 
 use tokio::sync::mpsc::unbounded_channel;
 
