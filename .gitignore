@@ -50,4 +50,4 @@ src/embedding/eval.py
 src/embedding/tokenize.py
 
 recall-eval.json
-
+*.safetensors

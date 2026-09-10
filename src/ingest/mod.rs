@@ -1,13 +1,12 @@
 pub mod dedup;
-mod error;
-
-pub use error::{ParserError, Result};
+pub mod error;
 
 use std::fs;
 use std::path::PathBuf;
 
 use html_escape::decode_html_entities;
 use serde::{Deserialize, Serialize};
+use tokio::sync::mpsc::unbounded_channel;
 use unicode_normalization::UnicodeNormalization;
 
 #[derive(Debug, Clone)]
@@ -180,7 +179,7 @@ pub fn chunk(words: &[Word], vod_id: &str, win: f64, stride: f64) -> Vec<Chunk> 
     chunks
 }
 
-pub fn parse_one(filepath: &PathBuf) -> Result<Vec<Chunk>> {
+pub fn parse_one(filepath: &PathBuf) -> error::Result<Vec<Chunk>> {
     let content = fs::read_to_string(filepath)?;
     let vod_id = {
         let filename = filepath.iter().next_back().unwrap().to_string_lossy();
@@ -201,19 +200,26 @@ pub fn parse_one(filepath: &PathBuf) -> Result<Vec<Chunk>> {
     Ok(chunked)
 }
 
-pub fn parse_all(subs_dir: &str) -> Result<()> {
+pub async fn parse_all(subs_dir: &str) -> error::Result<Vec<Chunk>> {
+    let (tx, rx) = unbounded_channel::<()>();
+
+    let mut output = Vec::new();
     let base_dir = PathBuf::from(subs_dir).canonicalize()?;
     let sub_filepaths = ingest(base_dir)?;
+    let num_files = sub_filepaths.len();
+
+    tokio::task::spawn(async move { crate::misc::progress(rx, "corpus", num_files).await });
 
     for filepath in sub_filepaths {
-        let parsed = parse_one(&filepath);
-        println!("chunked VTT: {:?}", parsed);
+        let parsed = parse_one(&filepath)?;
+        output.extend(parsed);
+        _ = tx.send(());
     }
 
-    todo!()
+    Ok(output)
 }
 
-fn ingest(base_dir: PathBuf) -> Result<Vec<PathBuf>> {
+fn ingest(base_dir: PathBuf) -> error::Result<Vec<PathBuf>> {
     // let mut sub_tracks: HashMap<String, Vec<PathBuf>> = HashMap::new();
     let mut sub_track_files: Vec<PathBuf> = Vec::new();
     let channel_dirs = std::fs::read_dir(base_dir)?.collect::<Vec<_>>();
@@ -221,7 +227,7 @@ fn ingest(base_dir: PathBuf) -> Result<Vec<PathBuf>> {
     for channel_dir in channel_dirs.into_iter() {
         let dir = match channel_dir {
             Ok(de) => de,
-            Err(e) => return Err(ParserError::IoErr(e)),
+            Err(e) => return Err(error::ParserError::IoErr(e)),
         };
 
         if dir.file_type()?.is_dir() {
