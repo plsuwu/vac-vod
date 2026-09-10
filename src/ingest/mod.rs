@@ -26,7 +26,7 @@ impl Word {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Chunk {
     pub vod_id: String,
     pub text: String,

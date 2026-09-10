@@ -24,6 +24,10 @@
         pkgs = import nixpkgs {
           inherit system;
           overlays = [ (import rust-overlay) ];
+          config = {
+            allowUnfree = true;
+            cudaSupport = true;
+          };
         };
 
         toolchainFor =
@@ -39,15 +43,40 @@
       in
       {
         devShells.default = craneLib.devShell {
+          NIX_LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath (
+            with pkgs;
+            [
+              zlib
+              glib
+              cudaPackages.cudatoolkit
+              stdenv.cc.cc
+              libxcb
+              libGL
+            ]
+          );
+
+          # NIX_LD = pkgs.lib.fileContents "${pkgs.stdenv.cc}/nix-support/dynamic-linker";
           packages = with pkgs; [
             pkg-config
-
             nodejs
             bun
-
             yt-dlp
             uv
           ];
+
+          buildInputs = with pkgs; [
+            zlib
+            glib
+            cudaPackages.cudatoolkit
+            stdenv.cc.cc
+            libxcb
+            libGL
+          ];
+
+          shellHook = ''
+            export CUDA_PATH=${pkgs.cudaPackages.cudatoolkit}
+            export LD_LIBRARY_PATH=${pkgs.stdenv.cc.cc.lib}:/run/opengl-driver/lib:$NIX_LD_LIBRARY_PATH:$LD_LIBRARY_PATH
+          '';
         };
       }
     );
