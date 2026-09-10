@@ -1,4 +1,0 @@
-- https://adeewu.github.io/elasticsearch-definitive-guide/practical-scoring-function.html
-- https://en.wikipedia.org/wiki/Tf%E2%80%93idf
-- https://en.wikipedia.org/wiki/Log-normal_distribution
-- https://en.wikipedia.org/wiki/Mean_reciprocal_rank
