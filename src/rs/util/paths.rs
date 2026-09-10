@@ -9,12 +9,13 @@ pub struct ChannelDirectory {
 impl ChannelDirectory {
     pub fn new(channel: &str, base: &str) -> Self {
         Self {
-            prefix: format!("{base}/subtitle"),
+            prefix: format!("{base}"),
             channel: String::from(channel),
             raw: String::from("raw"),
             jsonl: String::from("jsonl"),
         }
     }
+
 
     pub fn manifest_filepath(&self) -> String {
         format!("{}/{}/manifest.json", self.prefix, self.channel)

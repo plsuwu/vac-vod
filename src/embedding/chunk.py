@@ -35,6 +35,8 @@ def chunk_parts(
     chunks = []
     for seg in segments:
         for win in windows(seg, size, stride):
+            print(win)
+
             chunk = Chunked(
                 channel_id,
                 video_id,

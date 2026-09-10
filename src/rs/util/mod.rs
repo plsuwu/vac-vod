@@ -1,6 +1,9 @@
 use serde::Deserialize;
 
-use crate::rs::util::env::{Error as EnvError, from_env};
+use crate::rs::util::{
+    env::{Error as EnvError, from_env},
+    paths::ChannelDirectory,
+};
 
 pub mod env;
 pub mod paths;
@@ -31,4 +34,8 @@ macro_rules! var {
     ($var:expr) => {
         $crate::rs::util::Env::get($var)
     };
+}
+
+pub fn read_file(filepath: &str) -> String {
+    std::fs::read_to_string(filepath).expect("failed to read the manifest file")
 }

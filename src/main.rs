@@ -1,4 +1,6 @@
-use crate::rs::prelude::*;
+use std::fs::read_dir;
+
+use crate::rs::{ingest, prelude::*};
 
 mod rs;
 
@@ -8,24 +10,39 @@ pub type Result<T> = core::result::Result<T, &'static str>;
 async fn main() {
     init_stdout_logger();
 
-    // let channel_ids: [String; 2] = [
-    //     "UCaZkRdEEpePJ4EEZznuqh8g".to_string(),
-    //     "UCBustguC_fsnqDQZxOBgGEg".to_string(),
-    // ];
-
     let args = get_args();
-    let channel_ids = &args.channel_ids;
     let base_outdir = &args.output_dir;
-    let query = args.search.clone().unwrap();
-    let k = args.k;
+    // let channel_ids = &args.channel_ids;
+
+    let channel_ids: [String; 2] = [
+        "UCaZkRdEEpePJ4EEZznuqh8g".to_string(),
+        "UCBustguC_fsnqDQZxOBgGEg".to_string(),
+    ];
+
+    // let k = args.k;
 
     _ = match get_args().action {
-        ActionArg::Manifest => run_manifest_action(channel_ids, base_outdir).await,
-        ActionArg::Fetch => run_fetch_action(channel_ids, base_outdir).await,
-        ActionArg::Ingest => todo!(),
+        ActionArg::Manifest => run_manifest_action(&channel_ids, base_outdir).await,
+        ActionArg::Fetch => run_fetch_action(&channel_ids, base_outdir).await,
+        ActionArg::Ingest => run_ingest_action(&channel_ids, base_outdir),
         ActionArg::All => todo!(),
-        ActionArg::Eval => run_eval_action(&query, k),
+        ActionArg::Eval => {
+            let query = args.search.clone().unwrap();
+            let k = args.k;
+
+            run_eval_action(&query, k)
+        }
     };
+}
+
+fn run_ingest_action(channel_ids: &[String], base_outdir: &str) -> Result<()> {
+    todo!()
+
+    // for id in channel_ids {
+    //     let channel_dir = ChannelDirectory::new(id, base_outdir);
+    //     let out_dir = channel_dir.read_raw_output_dir();
+    //     tracing::info!(?out_dir);
+    // }
 }
 
 async fn run_fetch_action(channel_ids: &[String], base_outdir: &str) -> Result<()> {
@@ -53,11 +70,4 @@ fn run_eval_action(query: &str, k: usize) -> Result<()> {
 
 async fn run_manifest_action(_channel_ids: &[String], _base_outdir: &str) -> Result<()> {
     unimplemented!("Use the JS implementation for now (`bun run fetch`)");
-}
-
-fn init_stdout_logger() {
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::TRACE)
-        .pretty()
-        .init();
 }

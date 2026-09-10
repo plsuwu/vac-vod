@@ -78,6 +78,6 @@ def main() -> None:
             clean = clean_subtitles(file)
             chunks = chunk_parts(channel_id, video_id, clean)
 
-            write_jsonl(chunks, video_id, channel_id)
+            # write_jsonl(chunks, video_id, channel_id)
 
     # eval

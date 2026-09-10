@@ -4,7 +4,7 @@ use futures::future::join_all;
 use serde::{Deserialize, Serialize};
 use tokio::sync::{Mutex, Semaphore};
 
-use crate::rs::util::paths::ChannelDirectory;
+use crate::rs::util::{paths::ChannelDirectory, read_file};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -130,9 +130,6 @@ async fn exec_cmd(
 }
 
 fn read_manifest(s: &ChannelDirectory) -> Vec<Video> {
-    let manifest_path = s.manifest_filepath();
-    let file_content =
-        fs::read_to_string(&manifest_path).expect("failed to read the manifest file");
-
+    let file_content = read_file(&s.manifest_filepath());
     serde_json::from_str(&file_content).expect("failed to parse the manifest JSON")
 }
