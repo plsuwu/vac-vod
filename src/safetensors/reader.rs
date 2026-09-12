@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::io;
 
+#[derive(Debug)]
 struct TensorMeta {
     dtype: String,
     shape: Vec<usize>,
@@ -9,6 +10,7 @@ struct TensorMeta {
     end: usize,
 }
 
+#[derive(Debug)]
 pub struct SafeTensors {
     data: Vec<u8>,
     meta: HashMap<String, TensorMeta>,
@@ -65,15 +67,21 @@ impl SafeTensors {
         let bytes = &self.data[m.start..m.end];
         let vals: Vec<f32> = match m.dtype.as_str() {
             "F32" => bytes
-                .chunks_exact(4)
-                .map(|b| f32::from_le_bytes(b.try_into().unwrap()))
+                .as_chunks::<4>()
+                .0
+                .iter()
+                .map(|&b| f32::from_le_bytes(b))
                 .collect(),
             "F16" => bytes
-                .chunks_exact(2)
+                .as_chunks::<2>()
+                .0
+                .iter()
                 .map(|b| f16_to_f32(u16::from_le_bytes([b[0], b[1]])))
                 .collect(),
             "BF16" => bytes
-                .chunks_exact(2)
+                .as_chunks::<2>()
+                .0
+                .iter()
                 .map(|b| f32::from_bits((u16::from_le_bytes([b[0], b[1]]) as u32) << 16))
                 .collect(),
             d => panic!("unsupported dtype {d} for '{name}'"),

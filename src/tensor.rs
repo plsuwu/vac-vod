@@ -5,6 +5,7 @@
 //
 // [CAB401 raytracer implementation]: https://github.com/plsuwu/CAB401/tree/master/a2
 
+#[derive(Debug)]
 pub struct Mat {
     pub rows: usize,
     pub cols: usize,

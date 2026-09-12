@@ -1,5 +1,6 @@
 pub mod dedup;
 pub mod error;
+pub mod fetch;
 
 use std::fs;
 use std::path::PathBuf;
@@ -69,12 +70,10 @@ fn flush(buf: &mut String, t: f64, out: &mut Vec<Word>) {
 }
 
 fn extract_words(line: &str, cue_start: f64, out: &mut Vec<Word>) {
-    let line = line.replace("[&nbsp;__&nbsp;]", "[__]");
+    let line = line.replace("[&nbsp;__&nbsp;]", "[swears]").to_lowercase();
     let mut t = cue_start;
     let mut strbuf = String::new();
     let mut chars = line.chars();
-
-    // let flush = |buf: &mut String, t: f64, out: &mut Vec<Word>| {};
 
     while let Some(c) = chars.next() {
         if c == '<' {
@@ -192,7 +191,15 @@ pub fn parse_one(filepath: &PathBuf) -> error::Result<Vec<Chunk>> {
     let chunked = chunked
         .into_iter()
         .map(|mut c| {
-            c.text = dedup::collapse(&c.text.replace(['\t', '\n'], " "), 3, 1);
+            c.text = dedup::collapse(
+                &c.text
+                    .replace(['\t', '\n'], " ")
+                    .replace(['>'], "")
+                    .replace("vak", "vac")
+                    .replace("vax", "vac\'s"),
+                4,
+                3,
+            );
             c
         })
         .collect();

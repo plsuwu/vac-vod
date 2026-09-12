@@ -15,6 +15,7 @@ const BLOCK: u32 = 128;
 
 type Res<T> = Result<T, Box<dyn Error>>;
 
+#[derive(Debug)]
 struct GpuLinear {
     w: CudaSlice<f32>, // [out, in]
     b: CudaSlice<f32>,
@@ -22,11 +23,13 @@ struct GpuLinear {
     inp: usize,
 }
 
+#[derive(Debug)]
 struct GpuLayerNorm {
     g: CudaSlice<f32>,
     b: CudaSlice<f32>,
 }
 
+#[derive(Debug)]
 struct GpuLayer {
     q: GpuLinear,
     k: GpuLinear,
@@ -54,6 +57,8 @@ pub struct GpuBert {
 }
 
 fn get(st: &SafeTensors, name: &str) -> (Vec<usize>, Vec<f32>) {
+    tracing::info!(name);
+
     if st.contains(name) {
         st.tensor(name)
     } else {
@@ -82,7 +87,7 @@ impl GpuBert {
                 b: up(&format!("{p}.bias"))?,
                 out: shape[0],
                 inp: shape[1],
-           })
+            })
         };
         let ln = |p: &str| -> Res<GpuLayerNorm> {
             Ok(GpuLayerNorm {
@@ -124,6 +129,7 @@ impl GpuBert {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn embed_batch(&self, seqs: &[Vec<u32>]) -> Res<Vec<Vec<f32>>> {
         let bsz = seqs.len();
         let l = seqs.iter().map(Vec::len).max().unwrap_or(0);
@@ -141,6 +147,8 @@ impl GpuBert {
         let ids_d = self.stream.clone_htod(&ids)?;
         let mask_d = self.stream.clone_htod(&mask)?;
 
+        // tracing::debug!(?ids_d, ?mask_d);
+
         let s = &self.stream;
         let mut x = s.alloc_zeros::<f32>(rows * h)?;
         let mut q = s.alloc_zeros::<f32>(rows * h)?;
@@ -151,6 +159,8 @@ impl GpuBert {
         let mut a = s.alloc_zeros::<f32>(rows * h)?;
         let mut f = s.alloc_zeros::<f32>(rows * self.cfg.intermediate)?;
         let mut out = s.alloc_zeros::<f32>(bsz * h)?;
+
+
 
         // embeddings
         let (li, hi) = (l as i32, h as i32);
@@ -172,7 +182,8 @@ impl GpuBert {
             }?;
         }
 
-        self.add_ln(&tmp, &a, &self.emb_ln, &mut x)?;
+
+        self.add_ln(&tmp, &a, &self.emb_ln, &mut x).expect("add_ln");
 
         for layer in &self.layers {
             self.gemm(&x, rows, &layer.q, &mut q, false)?;
@@ -208,6 +219,7 @@ impl GpuBert {
         Ok(host.chunks(h).map(<[f32]>::to_vec).collect())
     }
 
+    #[tracing::instrument(skip_all)]
     fn gemm(
         &self,
         inp: &CudaSlice<f32>,
@@ -234,7 +246,8 @@ impl GpuBert {
         unsafe { b.launch(cfg) }?;
         Ok(())
     }
-
+    
+    #[tracing::instrument(skip_all)]
     fn add_ln(
         &self,
         x: &CudaSlice<f32>,

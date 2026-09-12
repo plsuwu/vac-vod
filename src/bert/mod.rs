@@ -33,6 +33,39 @@ impl Config {
             pooling: Pooling::Mean,
         }
     }
+
+    pub fn e5_large() -> Self {
+        Self {
+            hidden: 1024,
+            heads: 16,
+            layers: 24,
+            intermediate: 4096,
+            eps: 1e-12,
+            pooling: Pooling::Mean,
+        }
+    }
+
+    pub fn gte_base() -> Self {
+        Self {
+            hidden: 768,
+            heads: 12,
+            layers: 12,
+            intermediate: 3072,
+            eps: 1e-12,
+            pooling: Pooling::Mean,
+        }
+    }
+
+    pub fn gte_small() -> Self {
+        Self {
+            hidden: 384,
+            heads: 12,
+            layers: 12,
+            intermediate: 1536,
+            eps: 1e-12,
+            pooling: Pooling::Mean,
+        }
+    }
 }
 
 pub struct Linear {
